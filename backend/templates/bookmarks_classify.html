@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>书签智能分类（草稿）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .tree ul { padding-left: 1rem; border-left: 2px solid #e5e7eb; margin-left: .5rem; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="text-lg font-semibold">🔖 书签智能分类（草稿）</div>
+      <div>
+        <a href="/bookmarks" class="text-sm text-indigo-600 hover:text-indigo-800">← 返回书签管理</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <select id="cfgScope" class="px-3 py-2 border rounded text-sm">
+          <option value="all">全部</option>
+          <option value="unclassified">仅未分类</option>
+        </select>
+        <input id="cfgLimit" type="number" min="1" placeholder="数量(可选)" class="px-3 py-2 border rounded w-36 text-sm" />
+        <input id="cfgName" type="text" placeholder="AI配置名称(可选)" class="px-3 py-2 border rounded w-64 text-sm" />
+        <button id="btnStart" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">生成草稿</button>
+        <button id="btnSave" class="px-3 py-2 bg-green-600 text-white rounded text-sm" disabled>保存草稿</button>
+        <button id="btnCommit" class="px-3 py-2 bg-blue-600 text-white rounded text-sm" disabled>入库</button>
+      </div>
+    </div>
+
+    <div id="draftArea" class="bg-white rounded-lg shadow p-4 hidden">
+      <div class="text-sm text-gray-600 mb-3">可在下方树形结构中编辑分类与标签。格式：{ id, category, tags[] }</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-2">草稿 JSON</h3>
+          <textarea id="draftJson" rows="20" class="w-full px-3 py-2 border rounded font-mono text-sm"></textarea>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">预览（只读）</h3>
+          <div id="draftPreview" class="tree text-sm text-gray-800"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiBase = '/api';
+    let sessionId = null;
+
+    const el = {
+      cfgScope: document.getElementById('cfgScope'),
+      cfgLimit: document.getElementById('cfgLimit'),
+      cfgName: document.getElementById('cfgName'),
+      btnStart: document.getElementById('btnStart'),
+      btnSave: document.getElementById('btnSave'),
+      btnCommit: document.getElementById('btnCommit'),
+      draftArea: document.getElementById('draftArea'),
+      draftJson: document.getElementById('draftJson'),
+      draftPreview: document.getElementById('draftPreview'),
+    };
+
+    el.btnStart.addEventListener('click', startDraft);
+    el.btnSave.addEventListener('click', saveDraft);
+    el.btnCommit.addEventListener('click', commitDraft);
+    el.draftJson.addEventListener('input', renderPreview);
+
+    async function startDraft() {
+      try {
+        el.btnStart.disabled = true; el.btnStart.textContent = '生成中...';
+        const payload = {
+          scope: el.cfgScope.value || 'all',
+          limit: el.cfgLimit.value ? parseInt(el.cfgLimit.value, 10) : undefined,
+          config_name: el.cfgName.value || undefined,
+        };
+        const resp = await fetch(`${apiBase}/bookmarks/classify/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '生成失败');
+        sessionId = result.data.session_id;
+        const original = result.data.original;
+        el.draftArea.classList.remove('hidden');
+        el.btnSave.disabled = false; el.btnCommit.disabled = false;
+        // 将原始JSON放入编辑区
+        el.draftJson.value = normalizeJson(original);
+        renderPreview();
+      } catch (e) {
+        alert('生成失败：' + e.message);
+      } finally {
+        el.btnStart.disabled = false; el.btnStart.textContent = '生成草稿';
+      }
+    }
+
+    function normalizeJson(str) {
+      try {
+        const obj = JSON.parse(str);
+        return JSON.stringify(obj, null, 2);
+      } catch {
+        // 兼容带前后文本
+        const s = str.indexOf('['), e = str.lastIndexOf(']');
+        if (s >= 0 && e > s) {
+          try { return JSON.stringify(JSON.parse(str.slice(s, e+1)), null, 2); } catch {}
+        }
+        return '[]';
+      }
+    }
+
+    function renderPreview() {
+      try {
+        const data = JSON.parse(el.draftJson.value || '[]');
+        el.draftPreview.innerHTML = buildList(data);
+      } catch {
+        el.draftPreview.textContent = 'JSON 无法解析，请检查格式。';
+      }
+    }
+
+    function buildList(list) {
+      if (!Array.isArray(list) || list.length === 0) return '<div class="text-gray-500">空</div>';
+      return '<ul>' + list.map(item => {
+        const tags = Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || '');
+        const title = escapeHtml(item.title || '');
+        const url = escapeHtml(item.url || '');
+        const line = `[${escapeHtml(item.id||'')}] ${escapeHtml(item.category||'未分类')} | ${tags}` + (url ? ` — ${url}` : '');
+        return `<li class="py-1">${line}</li>`;
+      }).join('') + '</ul>';
+    }
+
+    async function saveDraft() {
+      try {
+        if (!sessionId) return;
+        const payload = { draft_json: JSON.parse(el.draftJson.value || '[]') };
+        const resp = await fetch(`${apiBase}/bookmarks/classify/${sessionId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '保存失败');
+        alert('草稿已保存');
+      } catch (e) {
+        alert('保存失败：' + e.message);
+      }
+    }
+
+    async function commitDraft() {
+      try {
+        if (!sessionId) return;
+        const resp = await fetch(`${apiBase}/bookmarks/classify/${sessionId}/commit`, { method: 'POST' });
+        const result = await resp.json();
+        if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '入库失败');
+        alert(`入库成功，更新 ${result.data.affected || 0} 条`);
+      } catch (e) {
+        alert('入库失败：' + e.message);
+      }
+    }
+
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text||''; return div.innerHTML; }
+  </script>
+</body>
+</html>

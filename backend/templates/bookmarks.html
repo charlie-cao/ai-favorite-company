@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>书签管理 - 浏览器历史记录管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="text-lg font-semibold">🔖 书签管理</div>
+      <div>
+        <a href="/" class="text-sm text-indigo-600 hover:text-indigo-800">← 返回首页</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <input id="bmSearch" type="text" placeholder="搜索标题或URL" class="px-3 py-2 border rounded w-64" />
+        <label class="inline-flex items-center text-sm"><input id="bmOnlyUnclassified" type="checkbox" class="mr-2 rounded" />仅看未分类</label>
+        <button id="bmQueryBtn" class="px-3 py-2 bg-indigo-600 text-white rounded text-sm">查询</button>
+        <a href="/bookmarks/classify" class="px-3 py-2 border rounded text-sm hover:bg-gray-50">智能分类（草稿）</a>
+        <button id="bmAcceptAI" class="px-3 py-2 bg-green-600 text-white rounded text-sm">接受AI分类</button>
+        <button id="bmClearAI" class="px-3 py-2 bg-yellow-600 text-white rounded text-sm">清空AI分类</button>
+        <button id="bmDelete" class="px-3 py-2 bg-red-600 text-white rounded text-sm">删除</button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"><input id="bmSelectAll" type="checkbox" class="rounded" /></th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标题</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI分类</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI标签</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">置信度</th>
+            </tr>
+          </thead>
+          <tbody id="bmTableBody" class="bg-white divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+      <div id="bmTableLoading" class="text-center py-6 hidden text-gray-600">加载中...</div>
+      <div class="px-4 py-3 border-t flex items-center justify-between">
+        <div class="text-sm text-gray-600">显示 <span id="bmStart">1</span>-<span id="bmEnd">0</span> · <span id="bmTotal">0</span></div>
+        <div class="space-x-2">
+          <button id="bmPrev" class="px-3 py-1 border rounded">上一页</button>
+          <span id="bmPageInfo" class="text-sm"></span>
+          <button id="bmNext" class="px-3 py-1 border rounded">下一页</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const apiBase = '/api';
+    let bmOffset = 0;
+    const bmLimit = 100;
+    let bmTotalCount = 0;
+
+    const el = {
+      bmSearch: document.getElementById('bmSearch'),
+      bmOnlyUnclassified: document.getElementById('bmOnlyUnclassified'),
+      bmQueryBtn: document.getElementById('bmQueryBtn'),
+      bmAcceptAI: document.getElementById('bmAcceptAI'),
+      bmClearAI: document.getElementById('bmClearAI'),
+      bmDelete: document.getElementById('bmDelete'),
+      bmSelectAll: document.getElementById('bmSelectAll'),
+      bmTableBody: document.getElementById('bmTableBody'),
+      bmTableLoading: document.getElementById('bmTableLoading'),
+      bmStart: document.getElementById('bmStart'),
+      bmEnd: document.getElementById('bmEnd'),
+      bmTotal: document.getElementById('bmTotal'),
+      bmPrev: document.getElementById('bmPrev'),
+      bmNext: document.getElementById('bmNext'),
+      bmPageInfo: document.getElementById('bmPageInfo'),
+    };
+
+    el.bmQueryBtn.addEventListener('click', () => { bmOffset = 0; loadTable(); });
+    el.bmPrev.addEventListener('click', () => { if (bmOffset >= bmLimit) { bmOffset -= bmLimit; loadTable(); } });
+    el.bmNext.addEventListener('click', () => { if (bmOffset + bmLimit < bmTotalCount) { bmOffset += bmLimit; loadTable(); } });
+    el.bmSelectAll.addEventListener('change', (e) => toggleAll(e.target.checked));
+
+    el.bmAcceptAI.addEventListener('click', () => manage('accept_ai'));
+    el.bmClearAI.addEventListener('click', () => manage('clear_ai'));
+    el.bmDelete.addEventListener('click', () => manage('delete'));
+
+    function toggleAll(checked) {
+      el.bmTableBody.querySelectorAll('.bm-row-select').forEach(cb => cb.checked = checked);
+    }
+
+    function selectedIds() {
+      const ids = [];
+      el.bmTableBody.querySelectorAll('.bm-row-select:checked').forEach(cb => ids.push(cb.getAttribute('data-id')));
+      return ids;
+    }
+
+    async function manage(action) {
+      const ids = selectedIds();
+      if (!ids.length) { alert('请先选择书签'); return; }
+      if (action === 'delete' && !confirm('确认删除所选书签记录？')) return;
+      const payload = { chrome_ids: ids, action };
+      const resp = await fetch(`${apiBase}/bookmarks/manage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await resp.json();
+      if (resp.ok && result.success) {
+        loadTable();
+      } else {
+        alert(result.detail || result.message || '操作失败');
+      }
+    }
+
+    async function loadTable() {
+      try {
+        el.bmTableLoading.classList.remove('hidden');
+        const params = new URLSearchParams({ limit: bmLimit, offset: bmOffset });
+        const s = el.bmSearch.value.trim();
+        if (s) params.append('search', s);
+        if (el.bmOnlyUnclassified.checked) params.append('unclassified', 'true');
+        const resp = await fetch(`${apiBase}/bookmarks?${params}`);
+        const result = await resp.json();
+        const items = result.data?.items || [];
+        bmTotalCount = (items.length < bmLimit && bmOffset === 0) ? items.length : (bmOffset + items.length + (items.length === bmLimit ? bmLimit : 0));
+        // 简化 total，这里后端未返回 total，前端估算；可后续改后端返回 count
+        el.bmStart.textContent = (bmOffset + 1).toString();
+        el.bmEnd.textContent = (bmOffset + items.length).toString();
+        el.bmTotal.textContent = '约 ' + bmTotalCount.toString();
+        el.bmPageInfo.textContent = `第 ${Math.floor(bmOffset / bmLimit) + 1} 页`;
+
+        const rows = items.map(it => `
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-3"><input type="checkbox" class="bm-row-select rounded" data-id="${escapeHtml(it.chrome_id)}"/></td>
+            <td class="px-6 py-3">
+              <div class="text-sm font-medium text-gray-900 truncate max-w-xs" title="${escapeHtml(it.title||'')}">${escapeHtml(it.title||'')}</div>
+            </td>
+            <td class="px-6 py-3">
+              ${it.url ? `<a href="${escapeAttr(it.url)}" target="_blank" class="text-sm text-indigo-600 hover:underline truncate max-w-sm inline-block" title="${escapeHtml(it.url)}">${escapeHtml(it.url)}</a>` : '<span class="text-gray-400 text-sm">(文件夹)</span>'}
+            </td>
+            <td class="px-6 py-3 text-sm">${escapeHtml(it.ai_category || '')}</td>
+            <td class="px-6 py-3 text-sm">${escapeHtml(it.ai_tags || '')}</td>
+            <td class="px-6 py-3 text-sm">${it.ai_confidence != null ? it.ai_confidence.toFixed(2) : ''}</td>
+          </tr>
+        `).join('');
+        el.bmTableBody.innerHTML = rows;
+      } catch (e) {
+        alert('加载失败');
+      } finally {
+        el.bmTableLoading.classList.add('hidden');
+      }
+    }
+
+    function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text||''; return div.innerHTML; }
+    function escapeAttr(text) { return (text||'').replace(/"/g, '&quot;'); }
+
+    // 初始加载
+    loadTable();
+  </script>
+</body>
+</html>

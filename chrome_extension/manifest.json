@@ -4,8 +4,17 @@
   "version": "1.0",
   "description": "分页显示浏览器历史记录的Chrome插件",
   "permissions": [
-    "history"
+    "history",
+    "storage",
+    "alarms",
+    "bookmarks"
   ],
+  "host_permissions": [
+    "http://localhost:8000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "查看历史记录"

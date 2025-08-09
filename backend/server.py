@@ -168,6 +168,33 @@ class AcademicWorkRequest(BaseModel):
     use_user_profile: bool = True
     use_word_cloud: bool = True
     additional_context: Optional[str] = None
+class BookmarkItem(BaseModel):
+    """浏览器书签节点"""
+    chrome_id: str
+    parent_id: Optional[str] = None
+    title: str
+    url: Optional[str] = None
+    type: str  # 'bookmark' | 'folder'
+    dateAdded: Optional[int] = None  # Unix毫秒
+    dateModified: Optional[int] = None  # Unix毫秒
+    isDeleted: Optional[bool] = False
+
+class BookmarkBatch(BaseModel):
+    items: List[BookmarkItem]
+
+class BookmarkManageRequest(BaseModel):
+    chrome_ids: List[str]
+    action: str  # categorize, tag, accept_ai, clear_ai, delete
+    value: Optional[str] = None
+
+class BookmarkClassifyStartRequest(BaseModel):
+    config_name: Optional[str] = None  # 指定AI配置名称
+    scope: Optional[str] = 'all'  # all | unclassified
+    limit: Optional[int] = None   # 限制数量（可选）
+
+class BookmarkClassifyDraftUpdate(BaseModel):
+    draft_json: Dict[str, Any]
+
 
 # 数据库操作
 @contextmanager
@@ -337,6 +364,52 @@ def init_database():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+
+        # 创建书签表
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bookmarks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                chrome_id TEXT UNIQUE,
+                parent_id TEXT,
+                title TEXT NOT NULL,
+                url TEXT,
+                type TEXT NOT NULL,
+                date_added INTEGER,
+                date_modified INTEGER,
+                is_deleted BOOLEAN DEFAULT 0,
+                category TEXT,
+                tags TEXT,
+                ai_category TEXT,
+                ai_tags TEXT,
+                ai_confidence REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # 书签分类会话表（草稿树）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS bookmark_classify_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                status TEXT DEFAULT 'pending', -- pending/completed/edited/committed
+                config_name TEXT,
+                scope TEXT DEFAULT 'all',
+                original_json TEXT,
+                draft_json TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # 创建分析摘要表（首页引导/摘要展示用）
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS analyze_summaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                summary_text TEXT NOT NULL,
+                records_used INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
         
         # 添加索引
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_browser_history_hidden ON browser_history(is_hidden)')
@@ -345,6 +418,11 @@ def init_database():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_content_generation_status ON content_generation_tasks(status)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_content_publishing_platform ON content_publishing(platform)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_academic_works_type ON academic_works(work_type)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_analyze_summaries_created ON analyze_summaries(created_at)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_url ON bookmarks(url)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_ai_category ON bookmarks(ai_category)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bookmarks_category ON bookmarks(category)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bcs_status ON bookmark_classify_sessions(status)')
         
         conn.commit()
         logger.info("数据库初始化完成")
@@ -450,6 +528,16 @@ async def agent_studio_page(request: Request):
     """Agent工作室页面"""
     return templates.TemplateResponse("agent_studio.html", {"request": request})
 
+@app.get("/bookmarks", response_class=HTMLResponse)
+async def bookmarks_page(request: Request):
+    """书签管理页面"""
+    return templates.TemplateResponse("bookmarks.html", {"request": request})
+
+@app.get("/bookmarks/classify", response_class=HTMLResponse)
+async def bookmarks_classify_page(request: Request):
+    """书签智能分类页面（会话草稿）"""
+    return templates.TemplateResponse("bookmarks_classify.html", {"request": request})
+
 # API端点
 @app.get("/api", response_model=ApiResponse)
 async def api_root():
@@ -462,6 +550,630 @@ async def api_root():
             "endpoints": ["/api/sync-single", "/api/sync-batch", "/api/stats", "/api/history"]
         }
     )
+
+# 健康检查
+@app.get("/api/healthz")
+async def healthz():
+    try:
+        # 简单读库验证
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+        return {"ok": True}
+    except Exception:
+        return JSONResponse(status_code=500, content={"ok": False})
+
+# 引导状态：是否已有历史数据、是否有激活AI
+@app.get("/api/onboarding/state", response_model=ApiResponse)
+async def get_onboarding_state():
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(1) as cnt FROM browser_history")
+            has_history = (cursor.fetchone()[0] or 0) > 0
+
+            cursor.execute("SELECT COUNT(1) FROM ai_configs WHERE is_active = 1")
+            has_active_ai = (cursor.fetchone()[0] or 0) > 0
+
+        return ApiResponse(
+            success=True,
+            message="获取引导状态成功",
+            data={
+                "has_history": has_history,
+                "has_active_ai": has_active_ai
+            }
+        )
+    except Exception as e:
+        logger.error(f"获取引导状态失败: {e}")
+        raise HTTPException(status_code=500, detail="获取引导状态失败")
+
+# AI自动探测（Ollama）
+@app.post("/api/ai/autodetect", response_model=ApiResponse)
+async def autodetect_ai(base_url: Optional[str] = None):
+    try:
+        req = OllamaTestRequest(base_url=base_url or "http://localhost:11434")
+        # 直接复用 test_ollama_connection 的逻辑
+        result = await test_ollama_connection(req)
+        return ApiResponse(success=True, message="探测成功", data=result.data)
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"AI自动探测失败: {e}")
+        raise HTTPException(status_code=500, detail="AI自动探测失败")
+
+def build_analysis_prompt_for_history(records: list, range_text: str = "最近数据") -> str:
+    try:
+        # 提取域名与标题
+        sites = []
+        for item in records:
+            url = item.get('url')
+            title = item.get('title') or '无标题'
+            visit_count = item.get('visit_count') or item.get('visitCount') or 1
+            try:
+                domain = url.split('//', 1)[-1].split('/')[0].replace('www.', '') if url else ''
+            except Exception:
+                domain = url or ''
+            sites.append({"domain": domain, "title": title, "visitCount": visit_count})
+
+        # 统计域名频率
+        domain_stats: Dict[str, int] = {}
+        for s in sites:
+            if s["domain"]:
+                domain_stats[s["domain"]] = domain_stats.get(s["domain"], 0) + int(s["visitCount"] or 1)
+        top_domains = sorted(domain_stats.items(), key=lambda x: x[1], reverse=True)[:20]
+        top_domains_text = "\n".join([f"{d} ({c}次)" for d, c in top_domains])
+
+        titles = [s["title"] for s in sites if s["title"] and s["title"] != '无标题'][:30]
+
+        prompt = f"""作为专业的数据分析师，请分析以下浏览历史数据：
+
+=== 数据概览 ===
+总访问记录: {len(records)} 条
+时间范围: {range_text}
+
+=== 高频访问网站 ===
+{top_domains_text}
+
+=== 页面标题样本 ===
+{'\n'.join(titles)}
+
+请提供以下分析：
+
+1. **用户画像分析**
+   - 主要兴趣领域和偏好
+   - 职业/身份特征推测
+   - 生活习惯和时间模式
+
+2. **内容偏好总结**
+   - 访问最频繁的网站类型
+   - 关注的主题和话题
+   - 内容消费习惯
+
+3. **兴趣标签词云** (请用中文，按重要性排序)
+   格式：[高频] 关键词1, 关键词2 | [中频] 关键词3, 关键词4 | [低频] 关键词5, 关键词6
+
+4. **行为模式洞察**
+   - 浏览行为特点
+   - 信息获取方式
+   - 潜在需求和痛点
+
+5. **个性化建议**
+   - 内容推荐方向
+   - 学习成长建议
+   - 效率优化建议
+
+请用专业但易懂的语言，提供有价值的洞察和建议。"""
+        return prompt
+    except Exception:
+        return "请根据最近的浏览记录，输出画像、偏好、标签词云、行为洞察与个性化建议。"
+
+@app.post("/api/analyze/run", response_model=ApiResponse)
+async def run_analysis(limit: int = 1000):
+    """触发一次AI分析，结果写入 analyze_summaries 表"""
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT url, title, visit_time, visit_count
+                FROM browser_history
+                ORDER BY last_visit_time DESC
+                LIMIT ?
+            ''', (limit,))
+            rows = cursor.fetchall()
+            if not rows:
+                raise HTTPException(status_code=400, detail="没有历史数据可用于分析")
+
+            records = [{
+                "url": r["url"],
+                "title": r["title"],
+                "visit_time": r["visit_time"],
+                "visit_count": r["visit_count"],
+            } for r in rows]
+
+        # 获取活跃AI配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM ai_configs WHERE is_active = 1 LIMIT 1")
+            ai_config = cursor.fetchone()
+            if not ai_config:
+                raise HTTPException(status_code=400, detail="没有可用的AI配置，请先完成AI配置")
+
+        prompt = build_analysis_prompt_for_history(records, range_text="最近数据")
+        # 复用生成逻辑
+        response_text = await generate_content_with_ai(ai_config, prompt)
+
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO analyze_summaries (summary_text, records_used)
+                VALUES (?, ?)
+            ''', (response_text, len(records)))
+            conn.commit()
+
+        return ApiResponse(success=True, message="分析已完成", data={"records_used": len(records)})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"运行分析失败: {e}")
+        raise HTTPException(status_code=500, detail="运行分析失败")
+
+@app.get("/api/analyze/summary", response_model=ApiResponse)
+async def get_latest_summary():
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT summary_text, records_used, created_at
+                FROM analyze_summaries
+                ORDER BY created_at DESC
+                LIMIT 1
+            ''')
+            row = cursor.fetchone()
+            if not row:
+                return ApiResponse(success=True, message="暂无摘要", data=None)
+            return ApiResponse(success=True, message="获取摘要成功", data={
+                "summary": row["summary_text"],
+                "records_used": row["records_used"],
+                "created_at": row["created_at"],
+            })
+    except Exception as e:
+        logger.error(f"获取摘要失败: {e}")
+        raise HTTPException(status_code=500, detail="获取摘要失败")
+
+# 书签同步接口
+def upsert_bookmark(cursor, item: BookmarkItem):
+    cursor.execute('''
+        SELECT id FROM bookmarks WHERE chrome_id = ?
+    ''', (item.chrome_id,))
+    exists = cursor.fetchone()
+    if exists:
+        cursor.execute('''
+            UPDATE bookmarks
+            SET parent_id = ?, title = ?, url = ?, type = ?,
+                date_added = ?, date_modified = ?, is_deleted = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE chrome_id = ?
+        ''', (
+            item.parent_id,
+            item.title,
+            item.url,
+            item.type,
+            item.dateAdded,
+            item.dateModified,
+            1 if item.isDeleted else 0,
+            item.chrome_id
+        ))
+    else:
+        cursor.execute('''
+            INSERT INTO bookmarks
+            (chrome_id, parent_id, title, url, type, date_added, date_modified, is_deleted)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            item.chrome_id,
+            item.parent_id,
+            item.title,
+            item.url,
+            item.type,
+            item.dateAdded,
+            item.dateModified,
+            1 if item.isDeleted else 0
+        ))
+
+@app.post('/api/bookmarks/sync-batch', response_model=ApiResponse)
+async def sync_bookmarks(batch: BookmarkBatch):
+    try:
+        if not batch.items:
+            raise HTTPException(status_code=400, detail='书签数据不能为空')
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            new_count = 0
+            upd_count = 0
+            for it in batch.items:
+                cursor.execute('SELECT id FROM bookmarks WHERE chrome_id = ?', (it.chrome_id,))
+                existed = cursor.fetchone()
+                upsert_bookmark(cursor, it)
+                if existed:
+                    upd_count += 1
+                else:
+                    new_count += 1
+            conn.commit()
+        return ApiResponse(success=True, message='书签同步完成', data={"new": new_count, "updated": upd_count, "total": len(batch.items)})
+    except Exception as e:
+        logger.error(f'同步书签失败: {e}')
+        raise HTTPException(status_code=500, detail='同步书签失败')
+
+@app.get('/api/bookmarks', response_model=ApiResponse)
+async def list_bookmarks(limit: int = 100, offset: int = 0, search: Optional[str] = None, unclassified: bool = False):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            where = ["is_deleted = 0"]
+            params: list = []
+            if search:
+                where.append("(title LIKE ? OR url LIKE ?)")
+                params.extend([f"%{search}%", f"%{search}%"])
+            if unclassified:
+                where.append("(ai_category IS NULL OR ai_category = '')")
+            where_clause = ("WHERE " + " AND ".join(where)) if where else ""
+            cursor.execute(f'''
+                SELECT chrome_id, parent_id, title, url, type, date_added, date_modified, category, tags, ai_category, ai_tags, ai_confidence
+                FROM bookmarks
+                {where_clause}
+                ORDER BY date_modified DESC NULLS LAST, date_added DESC NULLS LAST
+                LIMIT ? OFFSET ?
+            ''', params + [limit, offset])
+            rows = cursor.fetchall()
+            items = []
+            for r in rows:
+                items.append({
+                    "chrome_id": r["chrome_id"],
+                    "parent_id": r["parent_id"],
+                    "title": r["title"],
+                    "url": r["url"],
+                    "type": r["type"],
+                    "dateAdded": r["date_added"],
+                    "dateModified": r["date_modified"],
+                    "category": r["category"],
+                    "tags": r["tags"],
+                    "ai_category": r["ai_category"],
+                    "ai_tags": r["ai_tags"],
+                    "ai_confidence": r["ai_confidence"],
+                })
+        return ApiResponse(success=True, message='获取书签成功', data={"items": items, "limit": limit, "offset": offset})
+    except Exception as e:
+        logger.error(f'获取书签失败: {e}')
+        raise HTTPException(status_code=500, detail='获取书签失败')
+
+@app.get('/api/bookmarks/stats', response_model=ApiResponse)
+async def bookmarks_stats():
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(1) FROM bookmarks WHERE is_deleted = 0')
+            total = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(1) FROM bookmarks WHERE is_deleted = 0 AND type='folder'")
+            folders = cursor.fetchone()[0] or 0
+            cursor.execute("SELECT COUNT(1) FROM bookmarks WHERE is_deleted = 0 AND (ai_category IS NULL OR ai_category='') AND type='bookmark'")
+            unclassified = cursor.fetchone()[0] or 0
+        return ApiResponse(success=True, message='统计成功', data={"total": total, "folders": folders, "unclassified": unclassified})
+    except Exception as e:
+        logger.error(f'获取书签统计失败: {e}')
+        raise HTTPException(status_code=500, detail='获取书签统计失败')
+
+def build_bookmark_classify_prompt(items: list) -> str:
+    lines = []
+    for it in items:
+        title = it.get('title') or ''
+        url = it.get('url') or ''
+        chrome_id = it.get('chrome_id') or ''
+        lines.append(f"{{id:'{chrome_id}', title:'{title}', url:'{url}'}}")
+    template = f"""请对以下收藏夹书签进行智能分类与打标签，并输出严格的JSON数组：
+
+要求：
+- category: 一级分类（如 技术/学习/工作/生活/娱乐/购物/理财/产品/设计 等）
+- tags: 3-6 个中文标签（数组，短词）
+- confidence: 0-1 置信度
+- 请严格输出 JSON 数组，每项包含: id, category, tags, confidence
+
+书签列表：
+{chr(10).join(lines)}
+
+输出示例：
+[
+  {{"id": "123", "category": "技术", "tags": ["AI","后端","FastAPI"], "confidence": 0.86}}
+]
+"""
+    return template
+
+@app.post('/api/bookmarks/ai-classify', response_model=ApiResponse)
+async def ai_classify_bookmarks(limit: int = 100):
+    try:
+        # 读取待分类书签
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT chrome_id, title, url
+                FROM bookmarks
+                WHERE is_deleted = 0 AND type='bookmark' AND (ai_category IS NULL OR ai_category = '')
+                ORDER BY date_modified DESC NULLS LAST, date_added DESC NULLS LAST
+                LIMIT ?
+            ''', (limit,))
+            rows = cursor.fetchall()
+            if not rows:
+                return ApiResponse(success=True, message='暂无待分类书签', data={"classified": 0})
+            items = [{"chrome_id": r["chrome_id"], "title": r["title"], "url": r["url"]} for r in rows]
+
+        # 获取活跃AI配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM ai_configs WHERE is_active = 1 LIMIT 1")
+            ai_config = cursor.fetchone()
+            if not ai_config:
+                raise HTTPException(status_code=400, detail='没有可用的AI配置')
+
+        prompt = build_bookmark_classify_prompt(items)
+        ai_result = await generate_content_with_ai(ai_config, prompt)
+
+        # 尝试解析JSON
+        parsed = None
+        try:
+            parsed = json.loads(ai_result)
+        except Exception:
+            # 尝试提取JSON片段
+            try:
+                start = ai_result.find('[')
+                end = ai_result.rfind(']')
+                if start != -1 and end != -1 and end > start:
+                    parsed = json.loads(ai_result[start:end+1])
+            except Exception:
+                parsed = []
+
+        if not isinstance(parsed, list):
+            parsed = []
+
+        updated = 0
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            for obj in parsed:
+                try:
+                    cid = obj.get('id')
+                    category = obj.get('category')
+                    tags = obj.get('tags')
+                    confidence = obj.get('confidence')
+                    if not cid or not category:
+                        continue
+                    tags_str = ','.join(tags) if isinstance(tags, list) else (tags or '')
+                    cursor.execute('''
+                        UPDATE bookmarks
+                        SET ai_category = ?, ai_tags = ?, ai_confidence = ?, updated_at = CURRENT_TIMESTAMP
+                        WHERE chrome_id = ?
+                    ''', (category, tags_str, float(confidence) if confidence is not None else None, cid))
+                    if cursor.rowcount > 0:
+                        updated += 1
+                except Exception:
+                    continue
+            conn.commit()
+
+        return ApiResponse(success=True, message='AI分类完成', data={"classified": updated})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'AI分类失败: {e}')
+        raise HTTPException(status_code=500, detail='AI分类失败')
+
+# 书签分类会话：开始/读取/更新草稿/提交
+@app.post('/api/bookmarks/classify/start', response_model=ApiResponse)
+async def bookmarks_classify_start(body: BookmarkClassifyStartRequest):
+    try:
+        # 读取参与分类的书签
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            where = ["is_deleted = 0", "type='bookmark'"]
+            params: list = []
+            if body.scope == 'unclassified':
+                where.append("(category IS NULL OR category='')")
+            where_clause = "WHERE " + " AND ".join(where)
+            limit_sql = " LIMIT ?" if body.limit else ""
+            if body.limit:
+                params.append(body.limit)
+            cursor.execute(f"SELECT chrome_id, title, url FROM bookmarks {where_clause} ORDER BY date_modified DESC NULLS LAST, date_added DESC NULLS LAST{limit_sql}", params)
+            rows = cursor.fetchall()
+            items = [{"chrome_id": r["chrome_id"], "title": r["title"], "url": r["url"]} for r in rows]
+
+        # 获取AI配置
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            if body.config_name:
+                cursor.execute("SELECT * FROM ai_configs WHERE name=?", (body.config_name,))
+            else:
+                cursor.execute("SELECT * FROM ai_configs WHERE is_active = 1 LIMIT 1")
+            ai_config = cursor.fetchone()
+            if not ai_config:
+                raise HTTPException(status_code=400, detail='没有可用的AI配置')
+
+        prompt = build_bookmark_classify_prompt(items)
+        ai_result = await generate_content_with_ai(ai_config, prompt)
+
+        # 存为会话
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO bookmark_classify_sessions (status, config_name, scope, original_json, draft_json)
+                VALUES ('completed', ?, ?, ?, ?)
+            ''', (ai_config['name'] if 'name' in ai_config.keys() else None, body.scope or 'all', ai_result, ai_result))
+            sid = cursor.lastrowid
+            conn.commit()
+        return ApiResponse(success=True, message='分类会话创建成功', data={"session_id": sid, "original": ai_result})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'启动分类会话失败: {e}')
+        raise HTTPException(status_code=500, detail='启动分类会话失败')
+
+@app.get('/api/bookmarks/classify/{session_id}', response_model=ApiResponse)
+async def bookmarks_classify_get(session_id: int):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, status, config_name, scope, original_json, draft_json, created_at, updated_at FROM bookmark_classify_sessions WHERE id=?', (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail='会话不存在')
+            return ApiResponse(success=True, message='获取成功', data={
+                "id": row['id'],
+                "status": row['status'],
+                "config_name": row['config_name'],
+                "scope": row['scope'],
+                "original_json": row['original_json'],
+                "draft_json": row['draft_json'],
+                "created_at": row['created_at'],
+                "updated_at": row['updated_at'],
+            })
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'读取分类会话失败: {e}')
+        raise HTTPException(status_code=500, detail='读取分类会话失败')
+
+@app.put('/api/bookmarks/classify/{session_id}', response_model=ApiResponse)
+async def bookmarks_classify_update(session_id: int, body: BookmarkClassifyDraftUpdate):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                UPDATE bookmark_classify_sessions
+                SET draft_json = ?, status = 'edited', updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            ''', (json.dumps(body.draft_json) if isinstance(body.draft_json, dict) else body.draft_json, session_id))
+            if cursor.rowcount == 0:
+                raise HTTPException(status_code=404, detail='会话不存在')
+            conn.commit()
+        return ApiResponse(success=True, message='草稿已保存', data={"session_id": session_id})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'保存草稿失败: {e}')
+        raise HTTPException(status_code=500, detail='保存草稿失败')
+
+@app.post('/api/bookmarks/classify/{session_id}/commit', response_model=ApiResponse)
+async def bookmarks_classify_commit(session_id: int):
+    try:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT draft_json FROM bookmark_classify_sessions WHERE id=?', (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                raise HTTPException(status_code=404, detail='会话不存在')
+            draft = row['draft_json'] or '[]'
+        # 解析草稿树并写回书签（仅更新叶子节点，按 id 匹配）
+        def parse_json(text: str):
+            try:
+                obj = json.loads(text)
+                return obj if isinstance(obj, list) else []
+            except Exception:
+                s = text.find('[')
+                e = text.rfind(']')
+                if s != -1 and e != -1 and e > s:
+                    try:
+                        obj = json.loads(text[s:e+1])
+                        return obj if isinstance(obj, list) else []
+                    except Exception:
+                        return []
+                return []
+
+        data = parse_json(draft)
+
+        def iter_leaves(nodes):
+            if not isinstance(nodes, list):
+                return
+            for n in nodes:
+                children = n.get('children') if isinstance(n, dict) else None
+                if children and isinstance(children, list) and len(children) > 0:
+                    # 不是叶子，递归
+                    yield from iter_leaves(children)
+                else:
+                    if isinstance(n, dict):
+                        yield n
+
+        affected = 0
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            for leaf in iter_leaves(data):
+                cid = leaf.get('id')
+                if not cid:
+                    continue
+                category = leaf.get('category')
+                tags = leaf.get('tags')
+                tags_str = ','.join(tags) if isinstance(tags, list) else (tags or '')
+                cursor.execute('''
+                    UPDATE bookmarks
+                    SET category = ?, tags = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id = ?
+                ''', (category, tags_str, cid))
+                if cursor.rowcount > 0:
+                    affected += 1
+            # 更新会话状态
+            cursor.execute('UPDATE bookmark_classify_sessions SET status = \"committed\", updated_at = CURRENT_TIMESTAMP WHERE id = ?', (session_id,))
+            conn.commit()
+        return ApiResponse(success=True, message='分类结果已入库', data={"affected": affected})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'提交分类失败: {e}')
+        raise HTTPException(status_code=500, detail='提交分类失败')
+
+@app.post('/api/bookmarks/manage', response_model=ApiResponse)
+async def bookmarks_manage(req: BookmarkManageRequest):
+    try:
+        if not req.chrome_ids:
+            raise HTTPException(status_code=400, detail='未选择书签')
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            if req.action == 'accept_ai':
+                # 将 ai_* 覆盖到人工字段
+                cursor.execute(f'''
+                    UPDATE bookmarks
+                    SET category = ai_category,
+                        tags = ai_tags,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id IN ({','.join(['?']*len(req.chrome_ids))})
+                ''', req.chrome_ids)
+            elif req.action == 'clear_ai':
+                cursor.execute(f'''
+                    UPDATE bookmarks
+                    SET ai_category = NULL,
+                        ai_tags = NULL,
+                        ai_confidence = NULL,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id IN ({','.join(['?']*len(req.chrome_ids))})
+                ''', req.chrome_ids)
+            elif req.action == 'categorize' and req.value:
+                cursor.execute(f'''
+                    UPDATE bookmarks
+                    SET category = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id IN ({','.join(['?']*len(req.chrome_ids))})
+                ''', [req.value] + req.chrome_ids)
+            elif req.action == 'tag' and req.value:
+                cursor.execute(f'''
+                    UPDATE bookmarks
+                    SET tags = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id IN ({','.join(['?']*len(req.chrome_ids))})
+                ''', [req.value] + req.chrome_ids)
+            elif req.action == 'delete':
+                cursor.execute(f'''
+                    UPDATE bookmarks
+                    SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP
+                    WHERE chrome_id IN ({','.join(['?']*len(req.chrome_ids))})
+                ''', req.chrome_ids)
+            else:
+                raise HTTPException(status_code=400, detail='不支持的操作或缺少参数')
+            conn.commit()
+            return ApiResponse(success=True, message='操作成功', data={"affected": cursor.rowcount})
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f'书签操作失败: {e}')
+        raise HTTPException(status_code=500, detail='书签操作失败')
 
 @app.post("/api/sync-single", response_model=ApiResponse)
 async def sync_single_item(item: HistoryItem):

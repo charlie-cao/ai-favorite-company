@@ -7,6 +7,7 @@ class HistoryManager {
         
         this.initializeElements();
         this.bindEvents();
+        this.bootstrapOnboarding();
         this.loadData();
     }
     
@@ -35,7 +36,45 @@ class HistoryManager {
             noDataIndicator: document.getElementById('noDataIndicator'),
             
             // 图表
-            visitTrendChart: document.getElementById('visitTrendChart')
+            visitTrendChart: document.getElementById('visitTrendChart'),
+
+            // Onboarding & Summary
+            onboardingCard: document.getElementById('onboardingCard'),
+            onboardingMsg: document.getElementById('onboardingMsg'),
+            aiDetectBtn: document.getElementById('aiDetectBtn'),
+            runAnalysisBtn: document.getElementById('runAnalysisBtn'),
+            aiStatusText: document.getElementById('aiStatusText'),
+            summaryCard: document.getElementById('summaryCard'),
+            summaryMeta: document.getElementById('summaryMeta'),
+            summaryContent: document.getElementById('summaryContent'),
+            refreshSummaryBtn: document.getElementById('refreshSummaryBtn'),
+
+            // Create content modal
+            createContentBtn: document.getElementById('createContentBtn'),
+            selectAllRows: document.getElementById('selectAllRows'),
+            createModal: document.getElementById('createModal'),
+            createModalClose: document.getElementById('createModalClose'),
+            createModalCancel: document.getElementById('createModalCancel'),
+            createModalConfirm: document.getElementById('createModalConfirm'),
+            createStyle: document.getElementById('createStyle'),
+            createAudience: document.getElementById('createAudience'),
+            createLength: document.getElementById('createLength'),
+
+            // Tasks
+            tasksCard: document.getElementById('tasksCard'),
+            tasksContainer: document.getElementById('tasksContainer'),
+            refreshTasksBtn: document.getElementById('refreshTasksBtn'),
+            taskResultModal: document.getElementById('taskResultModal'),
+            taskResultTitle: document.getElementById('taskResultTitle'),
+            taskResultBody: document.getElementById('taskResultBody'),
+            taskResultClose: document.getElementById('taskResultClose'),
+
+            // Bookmarks stats/actions
+            bookmarksCard: document.getElementById('bookmarksCard'),
+            bmTotal: document.getElementById('bmTotal'),
+            bmUnclassified: document.getElementById('bmUnclassified'),
+            bmRefreshBtn: document.getElementById('bmRefreshBtn'),
+            bmClassifyBtn: document.getElementById('bmClassifyBtn'),
         };
     }
     
@@ -44,6 +83,46 @@ class HistoryManager {
         this.elements.searchBtn.addEventListener('click', () => this.searchHistory());
         this.elements.exportBtn.addEventListener('click', () => this.exportData());
         this.elements.deleteBtn.addEventListener('click', () => this.deleteAllData());
+
+        // Onboarding events
+        if (this.elements.aiDetectBtn) {
+            this.elements.aiDetectBtn.addEventListener('click', () => this.autodetectAI());
+        }
+        if (this.elements.runAnalysisBtn) {
+            this.elements.runAnalysisBtn.addEventListener('click', () => this.runAnalysis());
+        }
+        if (this.elements.refreshSummaryBtn) {
+            this.elements.refreshSummaryBtn.addEventListener('click', () => this.loadSummary());
+        }
+        if (this.elements.refreshTasksBtn) {
+            this.elements.refreshTasksBtn.addEventListener('click', () => this.loadTasks());
+        }
+        if (this.elements.taskResultClose) {
+            this.elements.taskResultClose.addEventListener('click', () => this.toggleTaskResult(false));
+        }
+        if (this.elements.bmRefreshBtn) {
+            this.elements.bmRefreshBtn.addEventListener('click', () => this.loadBookmarksStats());
+        }
+        if (this.elements.bmClassifyBtn) {
+            this.elements.bmClassifyBtn.addEventListener('click', () => this.classifyBookmarks());
+        }
+
+        // Create content actions
+        if (this.elements.createContentBtn) {
+            this.elements.createContentBtn.addEventListener('click', () => this.openCreateModal());
+        }
+        if (this.elements.createModalClose) {
+            this.elements.createModalClose.addEventListener('click', () => this.toggleCreateModal(false));
+        }
+        if (this.elements.createModalCancel) {
+            this.elements.createModalCancel.addEventListener('click', () => this.toggleCreateModal(false));
+        }
+        if (this.elements.createModalConfirm) {
+            this.elements.createModalConfirm.addEventListener('click', () => this.confirmCreate());
+        }
+        if (this.elements.selectAllRows) {
+            this.elements.selectAllRows.addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+        }
         
         // 回车搜索
         this.elements.searchInput.addEventListener('keypress', (e) => {
@@ -60,6 +139,138 @@ class HistoryManager {
                 this.loadHistory();
             }
         });
+    }
+
+    async bootstrapOnboarding() {
+        try {
+            // 获取引导状态
+            const resp = await fetch(`${this.apiBase}/onboarding/state`);
+            if (!resp.ok) throw new Error('引导状态检查失败');
+            const result = await resp.json();
+            const { has_history, has_active_ai } = result.data || {};
+
+            // 控制引导卡片显示
+            const needOnboarding = !has_history || !has_active_ai;
+            this.elements.onboardingCard.classList.toggle('hidden', !needOnboarding);
+
+            if (!has_active_ai) {
+                this.elements.aiStatusText.textContent = '未连接';
+            } else {
+                this.elements.aiStatusText.textContent = '已连接';
+            }
+
+            // 加载摘要卡
+            await this.loadSummary();
+
+            // 加载任务卡
+            await this.loadTasks();
+            await this.loadBookmarksStats();
+        } catch (e) {
+            console.warn(e);
+        }
+    }
+
+    async autodetectAI() {
+        try {
+            this.elements.aiDetectBtn.disabled = true;
+            this.elements.aiDetectBtn.textContent = '检测中...';
+
+            // 调用探测接口
+            const resp = await fetch(`${this.apiBase}/ai/autodetect`, { method: 'POST' });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '探测失败');
+
+            const models = result.data?.available_models || [];
+            const model = models[0] || 'llama2';
+
+            // 保存一个默认配置（若已存在会报错忽略）
+            await fetch(`${this.apiBase}/ai/configs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: 'Ollama默认配置',
+                    type: 'ollama',
+                    base_url: 'http://localhost:11434',
+                    model: model,
+                    max_tokens: 1024,
+                    temperature: 0.7,
+                    is_active: true
+                })
+            }).catch(() => {});
+
+            this.elements.aiStatusText.textContent = '已连接';
+            alert('AI 已连接，可开始分析');
+        } catch (e) {
+            alert('AI 自动连接失败：' + e.message);
+        } finally {
+            this.elements.aiDetectBtn.disabled = false;
+            this.elements.aiDetectBtn.textContent = '一键连接AI';
+        }
+    }
+
+    async loadBookmarksStats() {
+        try {
+            const resp = await fetch(`${this.apiBase}/bookmarks/stats`);
+            if (!resp.ok) return;
+            const result = await resp.json();
+            const data = result.data || {};
+            this.elements.bmTotal.textContent = (data.total || 0).toLocaleString();
+            this.elements.bmUnclassified.textContent = (data.unclassified || 0).toLocaleString();
+        } catch (e) {
+            console.warn('加载书签统计失败', e);
+        }
+    }
+
+    async classifyBookmarks() {
+        try {
+            this.elements.bmClassifyBtn.disabled = true;
+            this.elements.bmClassifyBtn.textContent = '分类中...';
+            const resp = await fetch(`${this.apiBase}/bookmarks/ai-classify`, { method: 'POST' });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '分类失败');
+            await this.loadBookmarksStats();
+            alert(`已分类 ${result.data.classified || 0} 条书签`);
+        } catch (e) {
+            alert('分类失败：' + e.message);
+        } finally {
+            this.elements.bmClassifyBtn.disabled = false;
+            this.elements.bmClassifyBtn.textContent = '一键分类';
+        }
+    }
+
+    async runAnalysis() {
+        try {
+            this.elements.runAnalysisBtn.disabled = true;
+            this.elements.runAnalysisBtn.textContent = '分析中...';
+            const resp = await fetch(`${this.apiBase}/analyze/run`, { method: 'POST' });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '分析失败');
+            await this.loadSummary();
+            alert('分析完成');
+        } catch (e) {
+            alert('分析失败：' + e.message);
+        } finally {
+            this.elements.runAnalysisBtn.disabled = false;
+            this.elements.runAnalysisBtn.textContent = '运行首次分析';
+        }
+    }
+
+    async loadSummary() {
+        try {
+            const resp = await fetch(`${this.apiBase}/analyze/summary`);
+            if (!resp.ok) return;
+            const result = await resp.json();
+            if (!result.data) {
+                this.elements.summaryCard.classList.add('hidden');
+                return;
+            }
+            this.elements.summaryCard.classList.remove('hidden');
+            this.elements.summaryMeta.textContent = `基于 ${result.data.records_used} 条记录 · 生成于 ${new Date(result.data.created_at).toLocaleString('zh-CN')}`;
+            // 简单转成段落
+            this.elements.summaryContent.textContent = result.data.summary;
+        } catch (e) {
+            console.warn('加载摘要失败', e);
+        }
     }
     
     async loadData() {
@@ -179,13 +390,16 @@ class HistoryManager {
         
         this.showNoData(false);
         
-        const rows = data.map(item => {
+        const rows = data.map((item, idx) => {
             const visitTime = new Date(item.visitTime).toLocaleString('zh-CN');
             const domain = this.extractDomain(item.url);
             const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
             
             return `
                 <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox" class="row-select rounded" data-url="${this.escapeHtml(item.url)}">
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <img src="${favicon}" alt="" class="w-4 h-4 mr-2" onerror="this.style.display='none'">
@@ -217,6 +431,144 @@ class HistoryManager {
         }).join('');
         
         this.elements.historyTableBody.innerHTML = rows;
+    }
+
+    toggleSelectAll(checked) {
+        this.elements.historyTableBody.querySelectorAll('.row-select').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+
+    openCreateModal() {
+        const selected = this.getSelectedUrls();
+        if (selected.length === 0) {
+            alert('请先勾选至少一个链接');
+            return;
+        }
+        this.toggleCreateModal(true);
+    }
+
+    toggleCreateModal(show) {
+        this.elements.createModal.classList.toggle('hidden', !show);
+        this.elements.createModal.classList.toggle('flex', show);
+    }
+
+    getSelectedUrls() {
+        const urls = [];
+        this.elements.historyTableBody.querySelectorAll('.row-select:checked').forEach(cb => {
+            const url = cb.getAttribute('data-url');
+            if (url) urls.push(url);
+        });
+        return urls;
+    }
+
+    async confirmCreate() {
+        try {
+            const urls = this.getSelectedUrls();
+            if (urls.length === 0) {
+                alert('未选择链接');
+                return;
+            }
+            this.elements.createModalConfirm.disabled = true;
+            this.elements.createModalConfirm.textContent = '创建中...';
+            const payload = {
+                task_name: `网页内容创作-${new Date().toISOString().slice(0,16).replace('T',' ')}`,
+                source_urls: urls.slice(0, 20), // 限制一次最多20条，避免太慢
+                agent_type: 'content_creation',
+                content_style: this.elements.createStyle.value,
+                target_audience: this.elements.createAudience.value.trim(),
+                content_length: this.elements.createLength.value
+            };
+            const resp = await fetch(`${this.apiBase}/content/batch-generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await resp.json();
+            if (!resp.ok || !result.success) throw new Error(result.detail || result.message || '创建失败');
+            this.toggleCreateModal(false);
+            alert('已创建生成任务，可在AI助手或后台查看');
+            this.loadTasks();
+        } catch (e) {
+            alert('创建失败：' + e.message);
+        } finally {
+            this.elements.createModalConfirm.disabled = false;
+            this.elements.createModalConfirm.textContent = '开始生成';
+        }
+    }
+
+    async loadTasks() {
+        try {
+            const resp = await fetch(`${this.apiBase}/content/tasks`);
+            if (!resp.ok) return;
+            const result = await resp.json();
+            const tasks = result.data?.tasks || [];
+            if (tasks.length === 0) {
+                this.elements.tasksCard.classList.add('hidden');
+                return;
+            }
+            this.elements.tasksCard.classList.remove('hidden');
+            const html = tasks.map(t => {
+                const progress = Math.min(100, Math.max(0, t.progress || 0));
+                const statusColor = t.status === 'completed' ? 'bg-green-600' : t.status === 'failed' ? 'bg-red-600' : 'bg-indigo-600';
+                return `
+                    <div class="border rounded-lg p-4">
+                        <div class="flex items-center justify-between">
+                            <div class="font-medium text-gray-900">${this.escapeHtml(t.task_name)}</div>
+                            <div class="text-xs text-gray-500">${this.escapeHtml(t.status)} · ${new Date(t.updated_at || t.created_at).toLocaleString('zh-CN')}</div>
+                        </div>
+                        <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                            <div class="h-2 rounded-full ${statusColor}" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="mt-2 text-xs text-gray-600">进度：${progress}%</div>
+                        <div class="mt-3">
+                            <button data-task-id="${t.id}" class="view-task btn-view px-3 py-1 text-sm bg-white border rounded hover:bg-gray-50">查看结果</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            this.elements.tasksContainer.innerHTML = html;
+            this.elements.tasksContainer.querySelectorAll('.btn-view').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-task-id');
+                    this.viewTaskResult(id);
+                });
+            });
+        } catch (e) {
+            console.warn('加载任务失败', e);
+        }
+    }
+
+    async viewTaskResult(taskId) {
+        try {
+            const resp = await fetch(`${this.apiBase}/content/tasks/${taskId}/results`);
+            if (!resp.ok) throw new Error('获取结果失败');
+            const result = await resp.json();
+            const list = result.data?.results || [];
+            this.elements.taskResultTitle.textContent = `任务结果 #${taskId}`;
+            const html = list.length === 0 ? '<div class="text-gray-500">暂无结果</div>' : list.map((r, idx) => {
+                const content = (r.content || '').replace(/\n/g, '<br>');
+                const statusTag = r.status === 'success' ? '<span class="text-green-700 bg-green-100 px-2 py-0.5 rounded text-xs">成功</span>' : '<span class="text-red-700 bg-red-100 px-2 py-0.5 rounded text-xs">失败</span>';
+                return `
+                    <div class="border rounded p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="text-sm text-gray-600 truncate max-w-[60%]" title="${this.escapeHtml(r.url)}">${this.escapeHtml(r.url)}</div>
+                            <div>${statusTag}</div>
+                        </div>
+                        <div class="prose max-w-none text-sm">${content}</div>
+                    </div>
+                `;
+            }).join('');
+            this.elements.taskResultBody.innerHTML = html;
+            this.toggleTaskResult(true);
+        } catch (e) {
+            alert('查看结果失败：' + e.message);
+        }
+    }
+
+    toggleTaskResult(show) {
+        this.elements.taskResultModal.classList.toggle('hidden', !show);
+        this.elements.taskResultModal.classList.toggle('flex', show);
     }
     
     async loadChart() {

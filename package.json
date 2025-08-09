@@ -6,6 +6,7 @@
   "scripts": {
     "start": "cd backend && python server.py",
     "dev": "cd backend && python server.py --reload",
+    "start:v2": "cd v2/backend && uvicorn app.main:app --reload",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
