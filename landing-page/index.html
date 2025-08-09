@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <!-- 基础 Meta -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- SEO 核心 Meta -->
+    <title>AI智能浏览器助手 - 让每一次浏览都创造价值 | FavAI</title>
+    <meta name="description" content="FavAI是革命性的AI驱动浏览器历史管理平台，提供智能内容分析、批量创作、学术研究等功能。将浏览历史转化为知识资产，让每一次浏览都创造价值。免费试用。">
+    <meta name="keywords" content="AI浏览器助手,智能浏览历史,内容分析,批量创作,学术研究,知识管理,AI创作工具,浏览器历史管理">
+    <meta name="author" content="FavAI Team">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://favai.io">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://favai.io">
+    <meta property="og:title" content="AI智能浏览器助手 - 让每一次浏览都创造价值">
+    <meta property="og:description" content="革命性的AI驱动浏览器历史管理平台，智能内容分析、批量创作、学术研究。将浏览历史转化为知识资产。">
+    <meta property="og:image" content="https://favai.io/assets/images/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://favai.io">
+    <meta property="twitter:title" content="AI智能浏览器助手 - 让每一次浏览都创造价值">
+    <meta property="twitter:description" content="革命性的AI驱动浏览器历史管理平台，智能内容分析、批量创作、学术研究。">
+    <meta property="twitter:image" content="https://favai.io/assets/images/twitter-image.jpg">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Preload 性能优化 -->
+    <link rel="preload" href="/assets/css/main.css" as="style">
+    <link rel="preload" href="/assets/js/main.js" as="script">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/assets/css/main.css">
+    
+    <!-- 结构化数据 -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FavAI",
+        "alternateName": "AI智能浏览器助手",
+        "description": "革命性的AI驱动浏览器历史管理平台，提供智能内容分析、批量创作、学术研究等功能",
+        "url": "https://favai.io",
+        "applicationCategory": "ProductivityApplication",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "priceValidUntil": "2025-12-31"
+        },
+        "creator": {
+            "@type": "Organization",
+            "name": "FavAI Team"
+        },
+        "datePublished": "2024-01-01",
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "reviewCount": "1250"
+        }
+    }
+    </script>
+    
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'GA_MEASUREMENT_ID');
+    </script>
+</head>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="skip-link">跳转到主内容</a>
+    
+    <!-- Header -->
+    <header class="header" role="banner">
+        <nav class="nav-container" aria-label="主导航">
+            <div class="nav-brand">
+                <img src="/assets/images/logo.svg" alt="FavAI Logo" width="40" height="40">
+                <span class="brand-text">FavAI</span>
+            </div>
+            <ul class="nav-menu" role="menubar">
+                <li role="menuitem"><a href="#features">功能特色</a></li>
+                <li role="menuitem"><a href="#pricing">价格方案</a></li>
+                <li role="menuitem"><a href="#testimonials">用户评价</a></li>
+                <li role="menuitem"><a href="#contact">联系我们</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="btn-secondary" onclick="window.open('http://localhost:8000', '_blank')">免费试用</button>
+                <button class="mobile-menu-toggle" aria-label="打开菜单" aria-expanded="false">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" role="main">
+        <!-- Hero Section -->
+        <section class="hero" aria-labelledby="hero-title">
+            <div class="container">
+                <div class="hero-content">
+                    <div class="hero-text">
+                        <h1 id="hero-title" class="hero-title">
+                            让每一次浏览都<span class="highlight">创造价值</span>
+                        </h1>
+                        <p class="hero-subtitle">
+                            FavAI是革命性的AI驱动浏览器历史管理平台。智能分析您的浏览行为，
+                            生成个性化内容，助力学术研究与创作。将浏览历史转化为知识资产。
+                        </p>
+                        <div class="hero-stats">
+                            <div class="stat-item">
+                                <strong>50,000+</strong>
+                                <span>活跃用户</span>
+                            </div>
+                            <div class="stat-item">
+                                <strong>1M+</strong>
+                                <span>处理链接</span>
+                            </div>
+                            <div class="stat-item">
+                                <strong>99.9%</strong>
+                                <span>用户满意度</span>
+                            </div>
+                        </div>
+                        <div class="hero-actions">
+                            <button class="btn-primary cta-main" onclick="window.open('http://localhost:8000', '_blank')">
+                                🚀 立即免费体验
+                            </button>
+                            <button class="btn-secondary" onclick="scrollToSection('demo')">
+                                📹 观看演示
+                            </button>
+                        </div>
+                        <p class="hero-notice">✅ 完全免费 ✅ 无需注册 ✅ 隐私保护</p>
+                    </div>
+                    <div class="hero-visual">
+                        <div class="demo-window">
+                            <div class="window-header">
+                                <div class="window-controls">
+                                    <span class="control close"></span>
+                                    <span class="control minimize"></span>
+                                    <span class="control maximize"></span>
+                                </div>
+                                <div class="window-title">FavAI - 浏览器历史管理</div>
+                            </div>
+                            <div class="window-content">
+                                <div class="demo-interface">
+                                    <div class="interface-nav">
+                                        <span class="nav-item active">📊 数据概览</span>
+                                        <span class="nav-item">🔗 链接管理</span>
+                                        <span class="nav-item">🤖 AI工作台</span>
+                                    </div>
+                                    <div class="interface-content">
+                                        <div class="stats-grid">
+                                            <div class="stat-card">
+                                                <h4>浏览记录</h4>
+                                                <span class="stat-number">2,847</span>
+                                            </div>
+                                            <div class="stat-card">
+                                                <h4>AI分析</h4>
+                                                <span class="stat-number">156</span>
+                                            </div>
+                                        </div>
+                                        <div class="chart-placeholder">
+                                            <div class="chart-bars">
+                                                <div class="bar" style="height: 60%"></div>
+                                                <div class="bar" style="height: 80%"></div>
+                                                <div class="bar" style="height: 45%"></div>
+                                                <div class="bar" style="height: 90%"></div>
+                                                <div class="bar" style="height: 75%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features" aria-labelledby="features-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="features-title" class="section-title">强大功能，一站式解决方案</h2>
+                    <p class="section-subtitle">从数据收集到内容创作，全流程智能化管理</p>
+                </div>
+                
+                <div class="features-grid">
+                    <article class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>智能数据分析</h3>
+                        <p>深度分析浏览行为，生成用户画像和兴趣词云，发现隐藏的知识模式</p>
+                        <ul class="feature-list">
+                            <li>实时数据统计</li>
+                            <li>行为模式识别</li>
+                            <li>兴趣图谱生成</li>
+                        </ul>
+                    </article>
+
+                    <article class="feature-card featured">
+                        <div class="feature-badge">最受欢迎</div>
+                        <div class="feature-icon">🤖</div>
+                        <h3>AI批量创作</h3>
+                        <p>基于收集的链接内容，使用先进AI模型批量生成高质量文章和营销内容</p>
+                        <ul class="feature-list">
+                            <li>5种内容风格</li>
+                            <li>多平台发布</li>
+                            <li>效果监控分析</li>
+                        </ul>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">🎓</div>
+                        <h3>学术研究助手</h3>
+                        <p>自动生成论文草稿、专利申请和产品设计文档，助力学术创新</p>
+                        <ul class="feature-list">
+                            <li>论文结构生成</li>
+                            <li>专利文档制作</li>
+                            <li>产品设计方案</li>
+                        </ul>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">🔗</div>
+                        <h3>智能链接管理</h3>
+                        <p>高效管理浏览历史，支持分类、去重、隐藏，轻松找到需要的内容</p>
+                        <ul class="feature-list">
+                            <li>自动分类标签</li>
+                            <li>重复内容清理</li>
+                            <li>高级搜索过滤</li>
+                        </ul>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>营销效果分析</h3>
+                        <p>全方位监控内容发布效果，提供详细的数据分析和优化建议</p>
+                        <ul class="feature-list">
+                            <li>多维度数据分析</li>
+                            <li>ROI计算分析</li>
+                            <li>优化策略建议</li>
+                        </ul>
+                    </article>
+
+                    <article class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>隐私安全保护</h3>
+                        <p>100%本地化处理，数据不上云，确保您的浏览隐私和数据安全</p>
+                        <ul class="feature-list">
+                            <li>本地数据存储</li>
+                            <li>零数据泄露</li>
+                            <li>完全可控管理</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo Section -->
+        <section id="demo" class="demo-section" aria-labelledby="demo-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="demo-title" class="section-title">看看FavAI如何工作</h2>
+                    <p class="section-subtitle">3分钟了解完整工作流程</p>
+                </div>
+                
+                <div class="demo-content">
+                    <div class="demo-steps">
+                        <div class="step-item active" data-step="1">
+                            <div class="step-number">1</div>
+                            <h4>安装插件</h4>
+                            <p>一键安装Chrome扩展，自动收集浏览历史</p>
+                        </div>
+                        <div class="step-item" data-step="2">
+                            <div class="step-number">2</div>
+                            <h4>智能分析</h4>
+                            <p>AI自动分析浏览行为，生成兴趣画像</p>
+                        </div>
+                        <div class="step-item" data-step="3">
+                            <div class="step-number">3</div>
+                            <h4>内容创作</h4>
+                            <p>基于分析结果，批量生成高质量内容</p>
+                        </div>
+                        <div class="step-item" data-step="4">
+                            <div class="step-number">4</div>
+                            <h4>效果监控</h4>
+                            <p>实时跟踪发布效果，优化内容策略</p>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-video">
+                        <div class="video-placeholder">
+                            <div class="video-overlay">
+                                <button class="play-button" aria-label="播放演示视频">
+                                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                                        <circle cx="30" cy="30" r="30" fill="rgba(255,255,255,0.9)"/>
+                                        <path d="M25 20l15 10-15 10V20z" fill="#4F46E5"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <img src="/assets/images/demo-preview.jpg" alt="产品演示预览图" loading="lazy">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Benefits Section -->
+        <section class="benefits" aria-labelledby="benefits-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="benefits-title" class="section-title">为什么选择FavAI？</h2>
+                </div>
+                
+                <div class="benefits-grid">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">⚡</div>
+                        <h3>提升效率10倍</h3>
+                        <p>自动化内容创作流程，从手动整理到智能生成，大幅提升工作效率</p>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">💡</div>
+                        <h3>发现隐藏价值</h3>
+                        <p>将散乱的浏览历史转化为结构化知识，发现潜在的研究方向和商机</p>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🎯</div>
+                        <h3>精准内容定位</h3>
+                        <p>基于个人浏览偏好生成内容，确保内容与兴趣高度匹配</p>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">📊</div>
+                        <h3>数据驱动决策</h3>
+                        <p>详细的分析报告帮助您了解内容表现，做出数据驱动的优化决策</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Testimonials Section -->
+        <section id="testimonials" class="testimonials" aria-labelledby="testimonials-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="testimonials-title" class="section-title">用户怎么说</h2>
+                    <p class="section-subtitle">来自全球用户的真实反馈</p>
+                </div>
+                
+                <div class="testimonials-grid">
+                    <article class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <span class="stars">⭐⭐⭐⭐⭐</span>
+                        </div>
+                        <blockquote class="testimonial-text">
+                            "FavAI彻底改变了我的研究方式。以前散乱的浏览记录现在成了我的知识库，
+                            AI生成的论文草稿质量令人惊喜！"
+                        </blockquote>
+                        <div class="testimonial-author">
+                            <img src="/assets/images/avatar-1.jpg" alt="张教授头像" loading="lazy">
+                            <div class="author-info">
+                                <strong>张教授</strong>
+                                <span>清华大学计算机系</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <span class="stars">⭐⭐⭐⭐⭐</span>
+                        </div>
+                        <blockquote class="testimonial-text">
+                            "作为内容创作者，FavAI帮我节省了大量时间。批量生成的文章质量很高，
+                            发布到各平台的效果也很好。"
+                        </blockquote>
+                        <div class="testimonial-author">
+                            <img src="/assets/images/avatar-2.jpg" alt="李创作者头像" loading="lazy">
+                            <div class="author-info">
+                                <strong>李小明</strong>
+                                <span>自媒体创作者</span>
+                            </div>
+                        </div>
+                    </article>
+
+                    <article class="testimonial-card">
+                        <div class="testimonial-rating">
+                            <span class="stars">⭐⭐⭐⭐⭐</span>
+                        </div>
+                        <blockquote class="testimonial-text">
+                            "隐私保护做得很好，所有数据都在本地处理。界面简洁易用，
+                            功能强大但不复杂。"
+                        </blockquote>
+                        <div class="testimonial-author">
+                            <img src="/assets/images/avatar-3.jpg" alt="王经理头像" loading="lazy">
+                            <div class="author-info">
+                                <strong>王经理</strong>
+                                <span>互联网公司产品经理</span>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="pricing" class="pricing" aria-labelledby="pricing-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="pricing-title" class="section-title">选择适合您的方案</h2>
+                    <p class="section-subtitle">灵活的价格选项，满足不同需求</p>
+                </div>
+                
+                <div class="pricing-toggle">
+                    <span class="toggle-label">月付</span>
+                    <button class="toggle-switch" aria-label="切换价格方案">
+                        <span class="toggle-slider"></span>
+                    </button>
+                    <span class="toggle-label">年付 <span class="discount">省20%</span></span>
+                </div>
+                
+                <div class="pricing-grid">
+                    <div class="pricing-card">
+                        <h3>个人版</h3>
+                        <div class="price">
+                            <span class="price-currency">¥</span>
+                            <span class="price-amount" data-monthly="0" data-yearly="0">0</span>
+                            <span class="price-period">/月</span>
+                        </div>
+                        <p class="price-description">完全免费，适合个人使用</p>
+                        <ul class="features-list">
+                            <li>✅ 浏览历史管理</li>
+                            <li>✅ 基础AI分析</li>
+                            <li>✅ 本地数据存储</li>
+                            <li>✅ Chrome扩展</li>
+                            <li>❌ 批量内容生成</li>
+                            <li>❌ 学术研究功能</li>
+                            <li>❌ 营销分析报告</li>
+                        </ul>
+                        <button class="btn-secondary pricing-btn" onclick="window.open('http://localhost:8000', '_blank')">
+                            立即使用
+                        </button>
+                    </div>
+
+                    <div class="pricing-card featured">
+                        <div class="pricing-badge">推荐</div>
+                        <h3>专业版</h3>
+                        <div class="price">
+                            <span class="price-currency">¥</span>
+                            <span class="price-amount" data-monthly="99" data-yearly="79">99</span>
+                            <span class="price-period">/月</span>
+                        </div>
+                        <p class="price-description">适合内容创作者和研究人员</p>
+                        <ul class="features-list">
+                            <li>✅ 个人版所有功能</li>
+                            <li>✅ AI批量内容生成</li>
+                            <li>✅ 5种创作风格</li>
+                            <li>✅ 学术研究助手</li>
+                            <li>✅ 基础营销分析</li>
+                            <li>✅ 邮件技术支持</li>
+                            <li>❌ 高级分析报告</li>
+                        </ul>
+                        <button class="btn-primary pricing-btn">
+                            开始免费试用
+                        </button>
+                        <p class="trial-notice">14天免费试用，随时取消</p>
+                    </div>
+
+                    <div class="pricing-card">
+                        <h3>企业版</h3>
+                        <div class="price">
+                            <span class="price-currency">¥</span>
+                            <span class="price-amount" data-monthly="299" data-yearly="239">299</span>
+                            <span class="price-period">/月</span>
+                        </div>
+                        <p class="price-description">适合团队和企业使用</p>
+                        <ul class="features-list">
+                            <li>✅ 专业版所有功能</li>
+                            <li>✅ 无限内容生成</li>
+                            <li>✅ 高级分析报告</li>
+                            <li>✅ 多用户协作</li>
+                            <li>✅ API接口访问</li>
+                            <li>✅ 专属客户经理</li>
+                            <li>✅ 定制化开发</li>
+                        </ul>
+                        <button class="btn-secondary pricing-btn">
+                            联系销售
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="faq" aria-labelledby="faq-title">
+            <div class="container">
+                <div class="section-header">
+                    <h2 id="faq-title" class="section-title">常见问题</h2>
+                </div>
+                
+                <div class="faq-grid">
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>FavAI如何保护我的隐私？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>FavAI采用100%本地化处理，所有数据都存储在您的设备上，不会上传到云端。我们不收集、不存储、不分享您的任何浏览数据，确保您的隐私得到完全保护。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>需要注册账户吗？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>个人版完全无需注册，安装即用。专业版和企业版需要简单注册以提供更好的服务和技术支持。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>支持哪些浏览器？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>目前支持Chrome、Edge、Firefox等主流浏览器。我们正在扩展对更多浏览器的支持。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>AI生成的内容质量如何？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>我们使用最先进的AI模型，结合您的个人浏览偏好进行内容生成，确保内容既高质量又符合您的风格。用户满意度超过95%。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>如何获得技术支持？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>专业版用户享受邮件技术支持，企业版用户有专属客户经理。我们还提供详细的在线文档和视频教程。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <button class="faq-question" aria-expanded="false">
+                            <span>可以随时取消订阅吗？</span>
+                            <span class="faq-icon">+</span>
+                        </button>
+                        <div class="faq-answer">
+                            <p>当然可以。您可以随时在设置中取消订阅，取消后仍可继续使用到当前计费周期结束。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>准备开始您的AI浏览器助手之旅了吗？</h2>
+                    <p>加入50,000+用户，让每一次浏览都创造价值</p>
+                    <div class="cta-actions">
+                        <button class="btn-primary cta-main" onclick="window.open('http://localhost:8000', '_blank')">
+                            🚀 立即免费体验
+                        </button>
+                        <button class="btn-secondary" onclick="scrollToSection('pricing')">
+                            查看价格方案
+                        </button>
+                    </div>
+                    <p class="cta-notice">14天免费试用 · 无需信用卡 · 随时取消</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <img src="/assets/images/logo.svg" alt="FavAI Logo" width="40" height="40">
+                    <span class="brand-text">FavAI</span>
+                    <p class="brand-description">让每一次浏览都创造价值</p>
+                </div>
+                
+                <div class="footer-links">
+                    <div class="link-group">
+                        <h4>产品</h4>
+                        <ul>
+                            <li><a href="#features">功能特色</a></li>
+                            <li><a href="#pricing">价格方案</a></li>
+                            <li><a href="#demo">产品演示</a></li>
+                            <li><a href="http://localhost:8000" target="_blank">立即体验</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="link-group">
+                        <h4>支持</h4>
+                        <ul>
+                            <li><a href="/help">帮助文档</a></li>
+                            <li><a href="/contact">联系我们</a></li>
+                            <li><a href="/status">服务状态</a></li>
+                            <li><a href="/community">用户社区</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="link-group">
+                        <h4>公司</h4>
+                        <ul>
+                            <li><a href="/about">关于我们</a></li>
+                            <li><a href="/careers">加入我们</a></li>
+                            <li><a href="/blog">博客</a></li>
+                            <li><a href="/press">媒体报道</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="link-group">
+                        <h4>法律</h4>
+                        <ul>
+                            <li><a href="/privacy">隐私政策</a></li>
+                            <li><a href="/terms">服务条款</a></li>
+                            <li><a href="/cookies">Cookie政策</a></li>
+                            <li><a href="/security">安全说明</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 FavAI. 保留所有权利。</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Twitter" class="social-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path>
+                        </svg>
+                    </a>
+                    <a href="#" aria-label="GitHub" class="social-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                    </a>
+                    <a href="#" aria-label="LinkedIn" class="social-link">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/assets/js/main.js"></script>
+    
+    <!-- Performance Monitoring -->
+    <script>
+        // Web Vitals monitoring
+        window.addEventListener('load', function() {
+            if ('requestIdleCallback' in window) {
+                requestIdleCallback(function() {
+                    // Load performance monitoring scripts
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+{
+    "name": "FavAI - AI智能浏览器助手",
+    "short_name": "FavAI",
+    "description": "革命性的AI驱动浏览器历史管理平台，提供智能内容分析、批量创作、学术研究等功能。",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#4F46E5",
+    "theme_color": "#4F46E5",
+    "orientation": "portrait-primary",
+    "categories": ["productivity", "utilities", "business"],
+    "lang": "zh-CN",
+    "icons": [
+        {
+            "src": "/assets/images/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/assets/images/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/assets/images/screenshot-1.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "label": "主界面展示"
+        },
+        {
+            "src": "/assets/images/screenshot-2.png",
+            "sizes": "1280x720",
+            "type": "image/png",
+            "label": "AI工作台功能"
+        }
+    ],
+    "prefer_related_applications": false,
+    "related_applications": [],
+    "scope": "/",
+    "serviceworker": {
+        "src": "/sw.js",
+        "scope": "/",
+        "update_via_cache": "imports"
+    }
+}

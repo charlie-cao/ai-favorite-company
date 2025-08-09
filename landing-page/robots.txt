@@ -1,0 +1,32 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://favai.io/sitemap.xml
+
+# Crawl-delay for well-behaved bots
+Crawl-delay: 1
+
+# Block access to certain directories
+Disallow: /assets/
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /*?*
+
+# Allow important CSS and JS for proper rendering
+Allow: /assets/css/
+Allow: /assets/js/
+
+# Block search engines from indexing duplicate content
+Disallow: /*?utm_*
+Disallow: /*&utm_*
+
+# Block bots that consume too much bandwidth
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Crawl-delay: 10
+
+User-agent: DotBot
+Disallow: /
