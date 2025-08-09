@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent工作室 - 浏览器历史记录管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-50 to-pink-100 min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-lg border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-900">🤖 AI Agent 工作室</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/links" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all">
+                        🔗 链接管理
+                    </a>
+                    <a href="/" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all">
+                        ← 返回主页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <!-- Agent卡片网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 批量内容生成Agent -->
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">批量内容生成</h3>
+                </div>
+                <p class="text-gray-600 mb-4">基于多个链接批量生成高质量内容，支持多种风格和受众定制。</p>
+                <button onclick="showBatchContentModal()" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-all">
+                    开始生成
+                </button>
+            </div>
+
+            <!-- 内容发布管理Agent -->
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">内容发布管理</h3>
+                </div>
+                <p class="text-gray-600 mb-4">自动发布内容到各大平台，监控发布效果，生成详细的分析报告。</p>
+                <button onclick="showPublishingModal()" class="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition-all">
+                    管理发布
+                </button>
+            </div>
+
+            <!-- 学术创作Agent -->
+            <div class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <h3 class="ml-3 text-lg font-semibold text-gray-900">学术创作助手</h3>
+                </div>
+                <p class="text-gray-600 mb-4">基于用户画像和词云生成学术论文、专利申请、产品设计方案。</p>
+                <button onclick="showAcademicModal()" class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-lg transition-all">
+                    学术创作
+                </button>
+            </div>
+        </div>
+
+        <!-- 任务监控面板 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- 内容生成任务 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">📝 内容生成任务</h3>
+                <div id="contentTasksList" class="space-y-3">
+                    <!-- 任务列表将动态填充 -->
+                </div>
+                <button onclick="refreshContentTasks()" class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg transition-all">
+                    刷新任务列表
+                </button>
+            </div>
+
+            <!-- 发布分析报告 -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 发布分析报告</h3>
+                <div id="publishingAnalytics">
+                    <!-- 分析数据将动态填充 -->
+                </div>
+                <button onclick="refreshAnalytics()" class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg transition-all">
+                    刷新分析数据
+                </button>
+            </div>
+        </div>
+
+        <!-- 学术作品展示 -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">🎓 学术作品库</h3>
+            <div id="academicWorksList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 学术作品将动态填充 -->
+            </div>
+            <button onclick="refreshAcademicWorks()" class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg transition-all">
+                刷新作品库
+            </button>
+        </div>
+    </div>
+
+    <!-- 批量内容生成模态框 -->
+    <div id="batchContentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">📝 批量内容生成</h3>
+            <form id="batchContentForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">任务名称</label>
+                        <input type="text" id="taskName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="输入任务名称...">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">源链接 (每行一个)</label>
+                        <textarea id="sourceUrls" rows="6" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="https://example1.com&#10;https://example2.com&#10;..."></textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Agent类型</label>
+                            <select id="agentType" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                <option value="content_creation">内容创作</option>
+                                <option value="marketing">营销推广</option>
+                                <option value="tutorial">教程指南</option>
+                                <option value="review">产品评测</option>
+                                <option value="news">新闻报道</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">内容风格</label>
+                            <select id="contentStyle" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                <option value="marketing">营销推广</option>
+                                <option value="review">客观评测</option>
+                                <option value="tutorial">教程指南</option>
+                                <option value="news">新闻报道</option>
+                                <option value="story">故事叙述</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">目标受众</label>
+                            <input type="text" id="targetAudience" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500" placeholder="例如：技术爱好者、普通消费者...">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">内容长度</label>
+                            <select id="contentLength" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                                <option value="short">短文 (500-800字)</option>
+                                <option value="medium" selected>中等 (800-1500字)</option>
+                                <option value="long">长文 (1500-3000字)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hideBatchContentModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        开始生成
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 内容发布模态框 -->
+    <div id="publishingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">🚀 内容发布管理</h3>
+            <form id="publishingForm">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择内容</label>
+                        <select id="contentSelect" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+                            <option value="">选择要发布的内容...</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">发布平台</label>
+                        <select id="publishPlatform" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500">
+                            <option value="weibo">微博</option>
+                            <option value="wechat">微信公众号</option>
+                            <option value="zhihu">知乎</option>
+                            <option value="xiaohongshu">小红书</option>
+                            <option value="douyin">抖音</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="autoPublish" class="mr-2 rounded">
+                            <span class="text-sm text-gray-700">自动发布（否则保存为草稿）</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hidePublishingModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        发布内容
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 学术创作模态框 -->
+    <div id="academicModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">🎓 学术创作助手</h3>
+            <form id="academicForm">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">作品类型</label>
+                            <select id="workType" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500">
+                                <option value="paper">学术论文</option>
+                                <option value="patent">专利申请</option>
+                                <option value="product_design">产品设计方案</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">研究领域</label>
+                            <input type="text" id="focusArea" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" placeholder="例如：人工智能、生物技术...">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">作品标题</label>
+                        <input type="text" id="workTitle" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" placeholder="输入作品标题...">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">附加背景信息</label>
+                        <textarea id="additionalContext" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500" placeholder="可选：提供额外的背景信息或特殊要求..."></textarea>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="useUserProfile" checked class="mr-2 rounded">
+                            <span class="text-sm text-gray-700">使用用户画像数据</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="useWordCloud" checked class="mr-2 rounded">
+                            <span class="text-sm text-gray-700">使用词云数据</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="hideAcademicModal()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">
+                        开始创作
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loadingIndicator" class="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
+        <div class="flex items-center">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            处理中...
+        </div>
+    </div>
+
+    <script src="/static/agent_studio.js"></script>
+</body>
+</html>
