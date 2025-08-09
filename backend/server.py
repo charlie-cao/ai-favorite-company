@@ -1354,8 +1354,8 @@ async def generate_content_with_ai(ai_config, prompt: str) -> str:
                     "prompt": prompt,
                     "stream": False,
                     "options": {
-                        "num_predict": ai_config.get('max_tokens', 2048),
-                        "temperature": ai_config.get('temperature', 0.7)
+                        "num_predict": ai_config['max_tokens'] if ai_config['max_tokens'] else 2048,
+                        "temperature": ai_config['temperature'] if ai_config['temperature'] else 0.7
                     }
                 }
             ) as response:
