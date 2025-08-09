@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI配置管理 - 浏览器历史记录管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .config-card {
+            border-left: 4px solid #10b981;
+        }
+        .config-card.inactive {
+            border-left: 4px solid #6b7280;
+            opacity: 0.7;
+        }
+        .test-output {
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold">AI配置管理</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-200">
+                        返回主页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 标签页导航 -->
+        <div class="mb-8">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button id="configTab" class="tab-active py-2 px-1 border-b-2 font-medium text-sm">
+                        AI配置管理
+                    </button>
+                    <button id="agentTab" class="py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                        Agent模板
+                    </button>
+                    <button id="testTab" class="py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                        测试工具
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- AI配置管理页面 -->
+        <div id="configPanel" class="tab-panel">
+            <div class="mb-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold text-gray-900">AI配置管理</h2>
+                    <button id="addConfigBtn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        添加配置
+                    </button>
+                </div>
+                <p class="text-gray-600 mt-2">管理你的AI模型配置，支持Ollama、OpenAI等服务</p>
+            </div>
+
+            <!-- 配置列表 -->
+            <div id="configList" class="space-y-4">
+                <!-- 动态加载 -->
+            </div>
+        </div>
+
+        <!-- Agent模板页面 -->
+        <div id="agentPanel" class="tab-panel hidden">
+            <div class="mb-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-semibold text-gray-900">Agent模板管理</h2>
+                    <button id="addAgentBtn" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors">
+                        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        添加模板
+                    </button>
+                </div>
+                <p class="text-gray-600 mt-2">创建和管理AI Agent提示词模板</p>
+            </div>
+
+            <!-- 模板列表 -->
+            <div id="agentList" class="space-y-4">
+                <!-- 动态加载 -->
+            </div>
+        </div>
+
+        <!-- 测试工具页面 -->
+        <div id="testPanel" class="tab-panel hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Ollama连接测试 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Ollama连接测试</h3>
+                    <form id="ollamaTestForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ollama服务地址</label>
+                            <input type="url" id="ollamaUrl" value="http://localhost:11434" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">测试模型 (可选)</label>
+                            <input type="text" id="ollamaModel" placeholder="llama2, mistral等" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <button type="submit" class="w-full bg-orange-600 text-white py-2 rounded-md hover:bg-orange-700 transition-colors">
+                            测试连接
+                        </button>
+                    </form>
+                    <div id="ollamaTestResult" class="mt-4 hidden">
+                        <h4 class="font-medium text-gray-900 mb-2">测试结果:</h4>
+                        <div class="test-output bg-gray-100 p-3 rounded-md text-sm"></div>
+                    </div>
+                </div>
+
+                <!-- AI模型测试 -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">AI模型测试</h3>
+                    <form id="aiTestForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择配置</label>
+                            <select id="aiConfigSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">请选择AI配置</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">测试提示词</label>
+                            <textarea id="aiTestPrompt" rows="3" placeholder="输入测试提示词..." 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white py-2 rounded-md hover:bg-purple-700 transition-colors">
+                            发送测试
+                        </button>
+                    </form>
+                    <div id="aiTestResult" class="mt-4 hidden">
+                        <h4 class="font-medium text-gray-900 mb-2">AI响应:</h4>
+                        <div class="test-output bg-gray-100 p-3 rounded-md text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 配置表单模态框 -->
+    <div id="configModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 id="configModalTitle" class="text-lg font-semibold text-gray-900">添加AI配置</h3>
+                </div>
+                <form id="configForm" class="px-6 py-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">配置名称</label>
+                        <input type="text" id="configName" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">类型</label>
+                        <select id="configType" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="ollama">Ollama</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">服务地址</label>
+                        <input type="url" id="configBaseUrl" placeholder="http://localhost:11434" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">API密钥 (可选)</label>
+                        <input type="password" id="configApiKey" 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">模型名称</label>
+                        <input type="text" id="configModel" placeholder="llama2, gpt-3.5-turbo等" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">最大Token</label>
+                            <input type="number" id="configMaxTokens" value="2048" min="1" max="8192" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">温度</label>
+                            <input type="number" id="configTemperature" value="0.7" min="0" max="2" step="0.1" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="configIsActive" checked 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="configIsActive" class="ml-2 block text-sm text-gray-900">启用配置</label>
+                    </div>
+                </form>
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                    <button id="configCancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button id="configSaveBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agent模板表单模态框 -->
+    <div id="agentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 id="agentModalTitle" class="text-lg font-semibold text-gray-900">添加Agent模板</h3>
+                </div>
+                <form id="agentForm" class="px-6 py-4 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">模板名称</label>
+                        <input type="text" id="agentName" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">描述</label>
+                        <input type="text" id="agentDescription" required 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">关联AI配置</label>
+                        <select id="agentModelConfig" required 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+                            <option value="">请选择AI配置</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">系统提示词</label>
+                        <textarea id="agentSystemPrompt" rows="4" required 
+                                  placeholder="定义Agent的角色和行为..."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">用户提示词模板</label>
+                        <textarea id="agentUserPrompt" rows="3" required 
+                                  placeholder="用户输入的模板，使用 {input} 作为占位符..."
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"></textarea>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="agentIsActive" checked 
+                               class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                        <label for="agentIsActive" class="ml-2 block text-sm text-gray-900">启用模板</label>
+                    </div>
+                </form>
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                    <button id="agentCancelBtn" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                    <button id="agentSaveBtn" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/ai_config.js"></script>
+</body>
+</html>

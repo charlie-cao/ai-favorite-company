@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI配置 - 浏览器历史记录管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .status-connected { background-color: #10b981; }
+        .status-disconnected { background-color: #ef4444; }
+        .status-checking { 
+            background-color: #f59e0b; 
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .model-item {
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s;
+        }
+        .model-item:hover {
+            border-color: #3b82f6;
+        }
+        .model-item.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 导航栏 -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold">AI配置 - Ollama</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-4 py-2 rounded-lg transition-all duration-200">
+                        返回主页
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 步骤1: 检测Ollama -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">步骤1: 检测Ollama服务</h2>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <span id="statusIndicator" class="status-indicator status-disconnected"></span>
+                    <span id="statusText" class="text-gray-700">未检测</span>
+                </div>
+                <button id="checkOllamaBtn" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                    检测Ollama
+                </button>
+            </div>
+            <div id="ollamaInfo" class="mt-4 hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <h4 class="font-medium text-blue-900 mb-2">Ollama服务信息</h4>
+                    <div class="text-sm text-blue-800">
+                        <div>服务地址: <span class="font-mono">http://localhost:11434</span></div>
+                        <div>状态: <span id="ollamaStatus" class="font-semibold"></span></div>
+                        <div>可用模型数量: <span id="modelCount" class="font-semibold"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 步骤2: 选择模型 -->
+        <div id="modelSection" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">步骤2: 选择AI模型</h2>
+            <p class="text-gray-600 mb-4">从可用的模型中选择一个作为默认AI助手:</p>
+            <div id="modelList" class="space-y-3">
+                <!-- 动态加载模型列表 -->
+            </div>
+        </div>
+
+        <!-- 步骤3: 测试和保存 -->
+        <div id="testSection" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">步骤3: 测试和保存</h2>
+            
+            <!-- 测试区域 -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">测试AI模型</h3>
+                <div class="flex gap-4 mb-4">
+                    <input type="text" id="testPrompt" placeholder="输入测试消息，如：你好" 
+                           class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button id="testModelBtn" class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition-colors">
+                        测试
+                    </button>
+                </div>
+                <div id="testResult" class="hidden">
+                    <div class="bg-gray-100 border rounded-md p-4">
+                        <h4 class="font-medium text-gray-900 mb-2">AI响应:</h4>
+                        <div id="testOutput" class="text-sm text-gray-700 max-h-32 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保存配置 -->
+            <div class="border-t pt-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">保存AI配置</h3>
+                        <p class="text-sm text-gray-600">选择的模型: <span id="selectedModelName" class="font-semibold"></span></p>
+                    </div>
+                    <button id="saveConfigBtn" class="bg-green-600 text-white px-8 py-3 rounded-md hover:bg-green-700 transition-colors text-lg font-medium">
+                        保存配置
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前配置状态 -->
+        <div id="currentConfig" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">当前AI配置</h2>
+            <div class="bg-green-50 border border-green-200 rounded-md p-4">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-green-400 mt-0.5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div>
+                        <h4 class="font-medium text-green-900">AI配置已激活</h4>
+                        <div class="mt-2 text-sm text-green-800">
+                            <div>配置名称: <span id="currentConfigName" class="font-semibold"></span></div>
+                            <div>模型: <span id="currentModelName" class="font-semibold"></span></div>
+                            <div>服务地址: <span id="currentBaseUrl" class="font-mono"></span></div>
+                        </div>
+                        <button id="reconfigureBtn" class="mt-3 text-sm bg-green-100 text-green-800 px-3 py-1 rounded hover:bg-green-200 transition-colors">
+                            重新配置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/ai_simple.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "History Viewer",
+  "version": "1.0",
+  "description": "分页显示浏览器历史记录的Chrome插件",
+  "permissions": [
+    "history"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "查看历史记录"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

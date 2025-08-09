@@ -1,0 +1,34 @@
+{
+  "name": "ai-favorite-company",
+  "version": "1.0.0",
+  "description": "基于本地AI技术的个人浏览行为分析与内容创作平台",
+  "main": "backend/server.py",
+  "scripts": {
+    "start": "cd backend && python server.py",
+    "dev": "cd backend && python server.py --reload",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charlie-cao/ai-favorite-company.git"
+  },
+  "keywords": [
+    "ai",
+    "browser",
+    "analytics",
+    "privacy",
+    "content-creation",
+    "ollama",
+    "chrome-extension",
+    "fastapi"
+  ],
+  "author": "AI-Favorite-Company Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/charlie-cao/ai-favorite-company/issues"
+  },
+  "homepage": "https://github.com/charlie-cao/ai-favorite-company#readme",
+  "engines": {
+    "python": ">=3.8"
+  }
+}
