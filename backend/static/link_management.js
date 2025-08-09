@@ -22,6 +22,7 @@ class LinkManager {
         // 批量操作
         document.getElementById('selectAll').addEventListener('click', () => this.selectAll());
         document.getElementById('selectAllCheckbox').addEventListener('change', (e) => this.toggleSelectAll(e.target.checked));
+        document.getElementById('sendToAgent').addEventListener('click', () => this.sendToAgentStudio());
         document.getElementById('batchHide').addEventListener('click', () => this.batchOperation('hide'));
         document.getElementById('batchInvalid').addEventListener('click', () => this.batchOperation('mark_invalid'));
         document.getElementById('batchCategorize').addEventListener('click', () => this.showCategorizeModal());
@@ -127,6 +128,9 @@ class LinkManager {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex space-x-2">
+                    <button class="text-green-600 hover:text-green-900" onclick="linkManager.sendSingleToAgent('${item.url}')" title="发送到Agent工作台">
+                        🚀
+                    </button>
                     <button class="text-blue-600 hover:text-blue-900" onclick="linkManager.toggleHide(${item.id}, ${item.isHidden})">
                         ${item.isHidden ? '显示' : '隐藏'}
                     </button>
@@ -217,6 +221,52 @@ class LinkManager {
 
     updateSelectedCount() {
         document.getElementById('selectedCount').textContent = this.selectedItems.size;
+    }
+
+    sendToAgentStudio() {
+        if (this.selectedItems.size === 0) {
+            this.showError('请先选择要发送的链接');
+            return;
+        }
+
+        // 获取选中的链接URLs
+        const selectedUrls = [];
+        this.currentData.forEach(item => {
+            if (this.selectedItems.has(item.id)) {
+                selectedUrls.push(item.url);
+            }
+        });
+
+        if (selectedUrls.length === 0) {
+            this.showError('没有找到有效的链接');
+            return;
+        }
+
+        this._sendUrlsToAgent(selectedUrls);
+    }
+
+    sendSingleToAgent(url) {
+        // 发送单个链接到Agent工作台
+        this._sendUrlsToAgent([url]);
+    }
+
+    _sendUrlsToAgent(urls) {
+        // 将URLs存储到localStorage，以便Agent工作台读取
+        const linkData = {
+            urls: urls,
+            timestamp: Date.now(),
+            source: 'link_management'
+        };
+        
+        localStorage.setItem('pendingAgentUrls', JSON.stringify(linkData));
+        
+        // 显示确认信息并跳转
+        this.showSuccess(`已选择 ${urls.length} 个链接，正在跳转到Agent工作台...`);
+        
+        // 延迟跳转，让用户看到成功消息
+        setTimeout(() => {
+            window.open('/studio', '_blank');
+        }, 1000);
     }
 
     async batchOperation(action) {

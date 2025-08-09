@@ -6,6 +6,7 @@ class AgentStudio {
         
         this.initializeEventListeners();
         this.loadInitialData();
+        this.checkPendingUrls();
     }
 
     initializeEventListeners() {
@@ -35,6 +36,91 @@ class AgentStudio {
             this.refreshAcademicWorks(),
             this.loadContentOptions()
         ]);
+    }
+
+    checkPendingUrls() {
+        // 检查是否有从链接管理发送过来的URLs
+        const pendingData = localStorage.getItem('pendingAgentUrls');
+        if (pendingData) {
+            try {
+                const linkData = JSON.parse(pendingData);
+                
+                // 检查数据是否在最近5分钟内（防止过期数据）
+                const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+                if (linkData.timestamp > fiveMinutesAgo) {
+                    this.showUrlsReceivedModal(linkData.urls);
+                    // 清除已处理的数据
+                    localStorage.removeItem('pendingAgentUrls');
+                }
+            } catch (error) {
+                console.error('解析待处理URLs失败:', error);
+                localStorage.removeItem('pendingAgentUrls');
+            }
+        }
+    }
+
+    showUrlsReceivedModal(urls) {
+        // 创建动态模态框显示接收到的URLs
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">🔗 接收到链接</h3>
+                    <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <p class="text-gray-600 mb-3">从链接管理中心接收到 ${urls.length} 个链接，请选择要执行的操作：</p>
+                    <div class="max-h-40 overflow-y-auto bg-gray-50 rounded-lg p-3 mb-4">
+                        ${urls.map((url, index) => `
+                            <div class="text-sm text-blue-600 truncate mb-1" title="${url}">
+                                ${index + 1}. ${url}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-3">
+                    <button onclick="agentStudio.useUrlsForBatchGeneration(${JSON.stringify(urls).replace(/"/g, '&quot;')}); this.closest('.fixed').remove();" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        📝 批量内容生成
+                    </button>
+                    <button onclick="agentStudio.fillUrlsInForm(${JSON.stringify(urls).replace(/"/g, '&quot;')}); this.closest('.fixed').remove();" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        📋 填入表单
+                    </button>
+                    <button onclick="this.closest('.fixed').remove()" 
+                            class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        取消
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    useUrlsForBatchGeneration(urls) {
+        // 直接打开批量内容生成模态框并填入URLs
+        this.fillUrlsInForm(urls);
+        showBatchContentModal();
+    }
+
+    fillUrlsInForm(urls) {
+        // 将URLs填入表单的源链接字段
+        const sourceUrlsTextarea = document.getElementById('sourceUrls');
+        if (sourceUrlsTextarea) {
+            sourceUrlsTextarea.value = urls.join('\n');
+            
+            // 如果批量内容生成模态框是打开的，滚动到表单位置
+            const modal = document.getElementById('batchContentModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                sourceUrlsTextarea.scrollIntoView({ behavior: 'smooth' });
+                sourceUrlsTextarea.focus();
+            }
+        }
     }
 
     async refreshContentTasks() {
